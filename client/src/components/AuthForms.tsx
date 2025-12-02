@@ -1,15 +1,22 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import LanguageSelector from './LanguageSelector';
-import ThemeToggle from './ThemeToggle';
-import { Sparkles } from 'lucide-react';
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import LanguageSelector from "./LanguageSelector";
+import ThemeToggle from "./ThemeToggle";
+import { Sparkles } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
-  onSubmit?: (email: string, password: string) => void;
+  onSubmit?: (email: string, password: string) => Promise<void> | void;
   onSwitchToSignup?: () => void;
 }
 
@@ -17,10 +24,25 @@ export function LoginForm({ onSubmit, onSwitchToSignup }: LoginFormProps) {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit?.(email, password);
+    if (!onSubmit) return;
+    try {
+      setIsSubmitting(true);
+      await onSubmit(email, password);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({
+        title: t('auth.login'),
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -52,6 +74,7 @@ export function LoginForm({ onSubmit, onSwitchToSignup }: LoginFormProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@example.com"
+                  required
                   data-testid="input-email"
                 />
               </div>
@@ -67,10 +90,11 @@ export function LoginForm({ onSubmit, onSwitchToSignup }: LoginFormProps) {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                   data-testid="input-password"
                 />
               </div>
-              <Button type="submit" className="w-full" data-testid="button-submit-login">
+              <Button type="submit" className="w-full" disabled={isSubmitting} data-testid="button-submit-login">
                 {t('auth.login')}
               </Button>
             </form>
@@ -88,7 +112,7 @@ export function LoginForm({ onSubmit, onSwitchToSignup }: LoginFormProps) {
 }
 
 interface SignupFormProps {
-  onSubmit?: (data: { name: string; email: string; password: string; companyName: string }) => void;
+  onSubmit?: (data: { name: string; email: string; password: string; companyName: string }) => Promise<void> | void;
   onSwitchToLogin?: () => void;
 }
 
@@ -98,10 +122,25 @@ export function SignupForm({ onSubmit, onSwitchToLogin }: SignupFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit?.({ name, email, password, companyName });
+    if (!onSubmit) return;
+    try {
+      setIsSubmitting(true);
+      await onSubmit({ name, email, password, companyName });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({
+        title: t('auth.signup'),
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -132,6 +171,7 @@ export function SignupForm({ onSubmit, onSwitchToLogin }: SignupFormProps) {
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   placeholder="Sparkle Clean NYC"
+                  required
                   data-testid="input-company"
                 />
               </div>
@@ -142,6 +182,7 @@ export function SignupForm({ onSubmit, onSwitchToLogin }: SignupFormProps) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Maria Silva"
+                  required
                   data-testid="input-name"
                 />
               </div>
@@ -153,6 +194,7 @@ export function SignupForm({ onSubmit, onSwitchToLogin }: SignupFormProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@example.com"
+                  required
                   data-testid="input-signup-email"
                 />
               </div>
@@ -163,10 +205,11 @@ export function SignupForm({ onSubmit, onSwitchToLogin }: SignupFormProps) {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                   data-testid="input-signup-password"
                 />
               </div>
-              <Button type="submit" className="w-full" data-testid="button-submit-signup">
+              <Button type="submit" className="w-full" disabled={isSubmitting} data-testid="button-submit-signup">
                 {t('auth.signup')}
               </Button>
             </form>
