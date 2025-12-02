@@ -1,0 +1,2 @@
+-- Arquivo reservado para seeds locais.
+-- Utilize comandos INSERT aqui quando precisar popular dados para desenvolvimento.
