@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,16 +16,20 @@ import {
 import MetricCard from './MetricCard';
 import LanguageSelector from './LanguageSelector';
 import ThemeToggle from './ThemeToggle';
-import { Building2, CreditCard, Clock, CalendarCheck, Search, Sparkles, LogOut } from 'lucide-react';
+import { Building2, CreditCard, Clock, CalendarCheck, Search, Sparkles, LogOut, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/providers/AuthProvider';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { formatDistanceToNow } from 'date-fns';
 
-// todo: remove mock functionality
-const mockCompanies = [
-  { id: '1', name: 'Sparkle Clean NYC', status: 'active', cleaners: 8, clients: 24, jobs: 156, trialEnds: null },
-  { id: '2', name: 'Fresh Home Services', status: 'trial', cleaners: 4, clients: 12, jobs: 45, trialEnds: '2024-01-15' },
-  { id: '3', name: 'Premium Maids Co', status: 'active', cleaners: 12, clients: 38, jobs: 289, trialEnds: null },
-  { id: '4', name: 'NYC Clean Team', status: 'trial_expired', cleaners: 3, clients: 8, jobs: 22, trialEnds: '2023-12-01' },
-  { id: '5', name: 'Elite Cleaning NY', status: 'active', cleaners: 6, clients: 18, jobs: 98, trialEnds: null },
-];
+interface CompanyRow {
+  id: string;
+  name: string;
+  subscription_status: string | null;
+  trial_ends_at: string | null;
+  created_at: string;
+  is_blocked: boolean;
+}
 
 interface SuperAdminDashboardProps {
   onLogout?: () => void;
@@ -32,10 +37,98 @@ interface SuperAdminDashboardProps {
 
 export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardProps) {
   const { t } = useTranslation();
+  const { profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredCompanies = mockCompanies.filter(company =>
-    company.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const isSuperAdmin = profile?.role === 'superadmin';
+
+  const {
+    data: companies = [],
+    isLoading: isLoadingCompanies,
+    error: companiesError,
+  } = useQuery({
+    queryKey: ['superadmin-companies'],
+    enabled: isSuperAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name, subscription_status, trial_ends_at, created_at, is_blocked')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const {
+    data: cleaners = [],
+    isLoading: isLoadingCleaners,
+  } = useQuery({
+    queryKey: ['superadmin-cleaners'],
+    enabled: isSuperAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cleaners')
+        .select('id, company_id');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const {
+    data: clients = [],
+    isLoading: isLoadingClients,
+  } = useQuery({
+    queryKey: ['superadmin-clients'],
+    enabled: isSuperAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, company_id');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const {
+    data: schedules = [],
+    isLoading: isLoadingSchedules,
+  } = useQuery({
+    queryKey: ['superadmin-schedules'],
+    enabled: isSuperAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('schedules')
+        .select('id, company_id');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const aggregateByCompany = (rows: any[] = []) => {
+    const map = new Map<string, number>();
+    rows.forEach((row) => {
+      if (!row.company_id) return;
+      map.set(row.company_id, (map.get(row.company_id) ?? 0) + 1);
+    });
+    return map;
+  };
+
+  const cleanerCounts = useMemo(() => aggregateByCompany(cleaners), [cleaners]);
+  const clientCounts = useMemo(() => aggregateByCompany(clients), [clients]);
+  const scheduleCounts = useMemo(() => aggregateByCompany(schedules), [schedules]);
+
+  const companiesWithStats = useMemo(() => {
+    return companies.map((company: CompanyRow) => ({
+      ...company,
+      cleaners: cleanerCounts.get(company.id) ?? 0,
+      clients: clientCounts.get(company.id) ?? 0,
+      jobs: scheduleCounts.get(company.id) ?? 0,
+      status: company.subscription_status ?? 'trial',
+    }));
+  }, [companies, cleanerCounts, clientCounts, scheduleCounts]);
+
+  const filteredCompanies = companiesWithStats.filter(company =>
+    company.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getStatusBadge = (status: string) => {
@@ -51,13 +144,27 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
     }
   };
 
-  // todo: remove mock functionality
-  const metrics = {
-    totalCompanies: mockCompanies.length,
-    activeSubscriptions: mockCompanies.filter(c => c.status === 'active').length,
-    inTrial: mockCompanies.filter(c => c.status === 'trial').length,
-    totalJobs: mockCompanies.reduce((sum, c) => sum + c.jobs, 0),
-  };
+  const metrics = useMemo(() => {
+    return {
+      totalCompanies: companiesWithStats.length,
+      activeSubscriptions: companiesWithStats.filter(c => c.subscription_status === 'active').length,
+      inTrial: companiesWithStats.filter(c => c.subscription_status === 'trial').length,
+      totalJobs: schedules.length,
+    };
+  }, [companiesWithStats, schedules]);
+
+  if (!isSuperAdmin) {
+    return (
+      <Alert className="m-4">
+        <AlertTitle>{t('nav.dashboard')}</AlertTitle>
+        <AlertDescription>
+          {t('common.companyAccessRequired', {
+            defaultValue: 'Somente superadmins podem acessar este painel.',
+          })}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,6 +232,17 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
             </div>
           </CardHeader>
           <CardContent>
+            {(isLoadingCompanies || isLoadingCleaners || isLoadingClients || isLoadingSchedules) && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground pb-4">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t('common.loading')}
+              </div>
+            )}
+          {companiesError && (
+            <p className="text-sm text-destructive pb-4">
+              {companiesError.message || t('common.genericError')}
+            </p>
+          )}
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -140,7 +258,21 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
                 <TableBody>
                   {filteredCompanies.map((company) => (
                     <TableRow key={company.id} data-testid={`row-company-${company.id}`}>
-                      <TableCell className="font-medium">{company.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {company.name}
+                          {company.is_blocked && (
+                            <Badge variant="destructive" className="uppercase text-[10px]">
+                              Blocked
+                            </Badge>
+                          )}
+                        </div>
+                        {company.trial_ends_at && (
+                          <p className="text-xs text-muted-foreground">
+                            Trial ends {formatDistanceToNow(new Date(company.trial_ends_at), { addSuffix: true })}
+                          </p>
+                        )}
+                      </TableCell>
                       <TableCell>{getStatusBadge(company.status)}</TableCell>
                       <TableCell className="text-right">{company.cleaners}</TableCell>
                       <TableCell className="text-right">{company.clients}</TableCell>
@@ -152,6 +284,13 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
                       </TableCell>
                     </TableRow>
                   ))}
+                  {!companiesError && filteredCompanies.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                        {t('common.noData')}
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>

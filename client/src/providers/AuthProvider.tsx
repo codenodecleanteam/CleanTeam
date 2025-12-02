@@ -174,12 +174,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            name,
+            language: getPreferredLanguage(),
+          },
+        },
       });
       if (error) throw error;
 
       const userId = data.user?.id;
       if (!userId) {
         throw new Error("Não foi possível criar o usuário");
+      }
+
+      if (!data.session) {
+        const { data: loginData, error: loginError } =
+          await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+        if (loginError) throw loginError;
+        if (!loginData.session) {
+          throw new Error("Não foi possível autenticar o usuário recém criado.");
+        }
       }
 
       const { data: companyRow, error: companyError } = await supabase
