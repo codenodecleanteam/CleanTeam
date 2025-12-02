@@ -143,7 +143,8 @@ const resources = {
         companyAccessRequired: 'Available only for company admins.',
         saving: 'Saving...',
         requiredField: 'Please fill the required fields.',
-        noData: 'No records found.'
+        noData: 'No records found.',
+        comingSoon: 'Coming soon'
       },
       subscription: {
         expired: 'Your trial has expired',
@@ -293,7 +294,8 @@ const resources = {
         companyAccessRequired: 'Disponível apenas para administradores da empresa.',
         saving: 'Salvando...',
         requiredField: 'Preencha os campos obrigatórios.',
-        noData: 'Nenhum registro encontrado.'
+        noData: 'Nenhum registro encontrado.',
+        comingSoon: 'Em breve'
       },
       subscription: {
         expired: 'Seu periodo de teste expirou',
@@ -443,7 +445,8 @@ const resources = {
         companyAccessRequired: 'Disponible solo para administradores de la empresa.',
         saving: 'Guardando...',
         requiredField: 'Complete los campos obligatorios.',
-        noData: 'No hay registros.'
+        noData: 'No hay registros.',
+        comingSoon: 'Próximamente'
       },
       subscription: {
         expired: 'Tu prueba ha expirado',

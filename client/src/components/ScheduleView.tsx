@@ -1,24 +1,8 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -27,44 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Calendar, Clock, Car, Users } from 'lucide-react';
-
-// todo: remove mock functionality
-const mockSchedules = [
-  { id: '1', date: '2024-01-15', time: '09:00', clientName: 'Johnson Residence', driverName: 'Maria Santos', helper1: 'Ana Rodriguez', helper2: 'Carmen Lopez', status: 'scheduled' },
-  { id: '2', date: '2024-01-15', time: '14:00', clientName: 'Smith Family', driverName: 'Lucia Fernandez', helper1: 'Patricia Silva', helper2: null, status: 'in_progress' },
-  { id: '3', date: '2024-01-16', time: '10:00', clientName: 'Chen Apartment', driverName: 'Maria Santos', helper1: 'Carmen Lopez', helper2: null, status: 'scheduled' },
-  { id: '4', date: '2024-01-16', time: '15:00', clientName: 'Williams House', driverName: 'Lucia Fernandez', helper1: 'Ana Rodriguez', helper2: 'Patricia Silva', status: 'scheduled' },
-  { id: '5', date: '2024-01-14', time: '09:00', clientName: 'Garcia Condo', driverName: 'Maria Santos', helper1: 'Ana Rodriguez', helper2: null, status: 'completed' },
-];
-
-const mockCleaners = [
-  { id: '1', name: 'Maria Santos', drives: true },
-  { id: '2', name: 'Ana Rodriguez', drives: false },
-  { id: '3', name: 'Lucia Fernandez', drives: true },
-  { id: '4', name: 'Patricia Silva', drives: false },
-  { id: '5', name: 'Carmen Lopez', drives: false },
-];
-
-const mockClients = [
-  { id: '1', name: 'Johnson Residence' },
-  { id: '2', name: 'Smith Family' },
-  { id: '3', name: 'Chen Apartment' },
-  { id: '4', name: 'Williams House' },
-  { id: '5', name: 'Garcia Condo' },
-];
+import { Calendar, Clock, Car, Users, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/providers/AuthProvider';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function ScheduleView() {
   const { t } = useTranslation();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [newJob, setNewJob] = useState({
-    date: '',
-    time: '',
-    clientId: '',
-    driverId: '',
-    helper1Id: '',
-    helper2Id: '',
-  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -86,14 +39,107 @@ export default function ScheduleView() {
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  const handleAddJob = () => {
-    console.log('Adding job:', newJob);
-    setDialogOpen(false);
-    setNewJob({ date: '', time: '', clientId: '', driverId: '', helper1Id: '', helper2Id: '' });
+  const formatTime = (time?: string | null) => {
+    if (!time) return '-';
+    const date = new Date(time);
+    if (Number.isNaN(date.getTime())) {
+      return time.slice(11, 16);
+    }
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const drivers = mockCleaners.filter(c => c.drives);
-  const helpers = mockCleaners.filter(c => !c.drives);
+  const { company } = useAuth();
+  const companyId = company?.id;
+
+  const { data: schedules = [], isLoading: isLoadingSchedules, isError: schedulesError } = useQuery({
+    queryKey: ['schedules', companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from('schedules')
+        .select('id, job_date, start_time, client_id, drive_id, helper1_id, helper2_id, status')
+        .eq('company_id', companyId)
+        .order('job_date', { ascending: true })
+        .order('start_time', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients', companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name, address')
+        .eq('company_id', companyId);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: cleaners = [] } = useQuery({
+    queryKey: ['cleaners', companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from('cleaners')
+        .select('id, name')
+        .eq('company_id', companyId);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const cleanerMap = useMemo(() => {
+    const map = new Map<string, string>();
+    cleaners.forEach((cleaner: any) => {
+      map.set(cleaner.id, cleaner.name);
+    });
+    return map;
+  }, [cleaners]);
+
+  const clientMap = useMemo(() => {
+    const map = new Map<string, { name?: string; address?: string }>();
+    clients.forEach((client: any) => {
+      map.set(client.id, { name: client.name, address: client.address });
+    });
+    return map;
+  }, [clients]);
+
+  const parsedSchedules = useMemo(() => {
+    return schedules.map((schedule: any) => {
+      const clientInfo = clientMap.get(schedule.client_id) || {};
+      return {
+        id: schedule.id,
+        date: schedule.job_date,
+        time: schedule.start_time,
+        status: schedule.status,
+        clientName: clientInfo.name || '-',
+        clientAddress: clientInfo.address || '-',
+        driverName: cleanerMap.get(schedule.drive_id) || '-',
+        helper1: cleanerMap.get(schedule.helper1_id) || '-',
+        helper2: schedule.helper2_id ? cleanerMap.get(schedule.helper2_id) || '-' : null,
+      };
+    });
+  }, [schedules, clientMap, cleanerMap]);
+
+  if (!companyId) {
+    return (
+      <Alert>
+        <AlertTitle>{t('schedule.title')}</AlertTitle>
+        <AlertDescription>
+          {t('common.companyAccessRequired', {
+            defaultValue: 'Disponível apenas para administradores de empresa.',
+          })}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -102,112 +148,9 @@ export default function ScheduleView() {
           <h2 className="text-2xl font-bold">{t('schedule.title')}</h2>
           <p className="text-muted-foreground text-sm">Manage cleaning appointments</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-add-job">
-              <Plus className="h-4 w-4 mr-2" />
-              {t('schedule.addJob')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{t('schedule.addJob')}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="job-date">{t('schedule.date')}</Label>
-                  <Input
-                    id="job-date"
-                    type="date"
-                    value={newJob.date}
-                    onChange={(e) => setNewJob({ ...newJob, date: e.target.value })}
-                    data-testid="input-job-date"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="job-time">{t('schedule.time')}</Label>
-                  <Input
-                    id="job-time"
-                    type="time"
-                    value={newJob.time}
-                    onChange={(e) => setNewJob({ ...newJob, time: e.target.value })}
-                    data-testid="input-job-time"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t('schedule.client')}</Label>
-                <Select
-                  value={newJob.clientId}
-                  onValueChange={(val) => setNewJob({ ...newJob, clientId: val })}
-                >
-                  <SelectTrigger data-testid="select-job-client">
-                    <SelectValue placeholder="Select client..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockClients.map(client => (
-                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t('schedule.driver')}</Label>
-                <Select
-                  value={newJob.driverId}
-                  onValueChange={(val) => setNewJob({ ...newJob, driverId: val })}
-                >
-                  <SelectTrigger data-testid="select-job-driver">
-                    <SelectValue placeholder="Select driver..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {drivers.map(d => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('schedule.helper1')}</Label>
-                  <Select
-                    value={newJob.helper1Id}
-                    onValueChange={(val) => setNewJob({ ...newJob, helper1Id: val })}
-                  >
-                    <SelectTrigger data-testid="select-job-helper1">
-                      <SelectValue placeholder="Select..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {helpers.map(h => (
-                        <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('schedule.helper2')}</Label>
-                  <Select
-                    value={newJob.helper2Id}
-                    onValueChange={(val) => setNewJob({ ...newJob, helper2Id: val })}
-                  >
-                    <SelectTrigger data-testid="select-job-helper2">
-                      <SelectValue placeholder="Optional..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {helpers.map(h => (
-                        <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Button className="w-full" onClick={handleAddJob} data-testid="button-save-job">
-                {t('common.save')}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="rounded-md border px-4 py-2 text-sm text-muted-foreground">
+          {t('schedule.addJob')} • {t('common.comingSoon', { defaultValue: 'Em breve' })}
+        </div>
       </div>
 
       <Card>
@@ -218,6 +161,17 @@ export default function ScheduleView() {
           </div>
         </CardHeader>
         <CardContent>
+          {isLoadingSchedules && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t('common.loading')}
+            </div>
+          )}
+          {schedulesError && (
+            <p className="text-sm text-destructive">
+              {t('common.genericError')}
+            </p>
+          )}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -231,13 +185,15 @@ export default function ScheduleView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockSchedules.map((job) => (
+                {parsedSchedules.map((job) => (
                   <TableRow key={job.id} data-testid={`row-job-${job.id}`}>
-                    <TableCell className="font-medium">{formatDate(job.date)}</TableCell>
+                    <TableCell className="font-medium">
+                      {job.date ? formatDate(job.date) : '-'}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {job.time}
+                        {formatTime(job.time)}
                       </div>
                     </TableCell>
                     <TableCell>{job.clientName}</TableCell>
@@ -252,16 +208,24 @@ export default function ScheduleView() {
                           {job.helper1}
                           {job.helper2 && `, ${job.helper2}`}
                         </div>
+                        <p className="text-xs text-muted-foreground truncate">{job.clientAddress}</p>
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(job.status)}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" data-testid={`button-edit-job-${job.id}`}>
-                        {t('common.edit')}
-                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        {t('common.actions')}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}
+                {!isLoadingSchedules && parsedSchedules.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                      {t('common.noData')}
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
