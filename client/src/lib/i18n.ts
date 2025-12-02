@@ -137,7 +137,13 @@ const resources = {
         filter: 'Filter',
         loading: 'Loading...',
         noResults: 'No results found',
-        actions: 'Actions'
+        actions: 'Actions',
+        savedSuccessfully: 'Saved successfully',
+        genericError: 'Something went wrong.',
+        companyAccessRequired: 'Available only for company admins.',
+        saving: 'Saving...',
+        requiredField: 'Please fill the required fields.',
+        noData: 'No records found.'
       },
       subscription: {
         expired: 'Your trial has expired',
@@ -281,7 +287,13 @@ const resources = {
         filter: 'Filtrar',
         loading: 'Carregando...',
         noResults: 'Nenhum resultado encontrado',
-        actions: 'Acoes'
+        actions: 'Ações',
+        savedSuccessfully: 'Salvo com sucesso',
+        genericError: 'Ocorreu um erro.',
+        companyAccessRequired: 'Disponível apenas para administradores da empresa.',
+        saving: 'Salvando...',
+        requiredField: 'Preencha os campos obrigatórios.',
+        noData: 'Nenhum registro encontrado.'
       },
       subscription: {
         expired: 'Seu periodo de teste expirou',
@@ -425,7 +437,13 @@ const resources = {
         filter: 'Filtrar',
         loading: 'Cargando...',
         noResults: 'No se encontraron resultados',
-        actions: 'Acciones'
+        actions: 'Acciones',
+        savedSuccessfully: 'Guardado correctamente',
+        genericError: 'Ocurrió un error.',
+        companyAccessRequired: 'Disponible solo para administradores de la empresa.',
+        saving: 'Guardando...',
+        requiredField: 'Complete los campos obligatorios.',
+        noData: 'No hay registros.'
       },
       subscription: {
         expired: 'Tu prueba ha expirado',

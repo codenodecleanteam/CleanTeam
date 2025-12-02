@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,9 @@ import ScheduleView from './ScheduleView';
 import MetricCard from './MetricCard';
 import LanguageSelector from './LanguageSelector';
 import ThemeToggle from './ThemeToggle';
-import { Users, Home, CalendarCheck, FileText, LogOut } from 'lucide-react';
+import { Users, Home, CalendarCheck, FileText, LogOut, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/providers/AuthProvider';
 
 type ActiveView = 'overview' | 'cleaners' | 'clients' | 'schedule' | 'reports' | 'settings';
 
@@ -26,6 +29,7 @@ export default function CompanyAdminDashboard({
   onLogout 
 }: CompanyAdminDashboardProps) {
   const { t } = useTranslation();
+  const { company } = useAuth();
   const [activeView, setActiveView] = useState<ActiveView>('overview');
 
   const sidebarStyle = {
@@ -33,13 +37,50 @@ export default function CompanyAdminDashboard({
     "--sidebar-width-icon": "3rem",
   };
 
-  // todo: remove mock functionality
-  const metrics = {
-    cleaners: 8,
-    clients: 24,
-    scheduledJobs: 12,
-    completedThisWeek: 45,
-  };
+  const companyId = company?.id;
+  const resolvedCompanyName = company?.name ?? companyName;
+
+  const { data: metrics, isLoading: isLoadingMetrics, isError } = useQuery({
+    queryKey: ['company-metrics', companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      if (!companyId) {
+        return { cleaners: 0, clients: 0, scheduledJobs: 0, completedThisWeek: 0 };
+      }
+
+      const [cleanersRes, clientsRes, schedulesRes, completedRes] = await Promise.all([
+        supabase
+          .from('cleaners')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', companyId),
+        supabase
+          .from('clients')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', companyId),
+        supabase
+          .from('schedules')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', companyId),
+        supabase
+          .from('schedules')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', companyId)
+          .eq('status', 'completed'),
+      ]);
+
+      const safeCount = (res: { count: number | null } | null) => res?.count ?? 0;
+
+      return {
+        cleaners: safeCount(cleanersRes),
+        clients: safeCount(clientsRes),
+        scheduledJobs: safeCount(schedulesRes),
+        completedThisWeek: safeCount(completedRes),
+      };
+    },
+  });
+
+  const metricsData =
+    metrics ?? { cleaners: 0, clients: 0, scheduledJobs: 0, completedThisWeek: 0 };
 
   const renderContent = () => {
     switch (activeView) {
@@ -68,28 +109,39 @@ export default function CompanyAdminDashboard({
               <h2 className="text-2xl font-bold">{t('dashboard.overview')}</h2>
               <p className="text-muted-foreground">{t('dashboard.welcome')}</p>
             </div>
+            {isLoadingMetrics && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t('common.loading')}
+              </div>
+            )}
+            {isError && (
+              <p className="text-sm text-destructive">
+                {t('common.genericError')}
+              </p>
+            )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <MetricCard
                 title={t('dashboard.cleaners')}
-                value={metrics.cleaners}
+                value={metricsData.cleaners}
                 icon={Users}
                 description="Active team members"
               />
               <MetricCard
                 title={t('dashboard.clients')}
-                value={metrics.clients}
+                value={metricsData.clients}
                 icon={Home}
                 description="Registered locations"
               />
               <MetricCard
                 title="Scheduled Jobs"
-                value={metrics.scheduledJobs}
+                value={metricsData.scheduledJobs}
                 icon={CalendarCheck}
                 description="This week"
               />
               <MetricCard
                 title="Completed"
-                value={metrics.completedThisWeek}
+                value={metricsData.completedThisWeek}
                 icon={FileText}
                 description="Jobs this week"
                 trend={{ value: 8, positive: true }}
@@ -107,7 +159,7 @@ export default function CompanyAdminDashboard({
         <AdminSidebar 
           activeView={activeView} 
           onViewChange={setActiveView} 
-          companyName={companyName}
+          companyName={resolvedCompanyName}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-4 border-b bg-background px-4">
