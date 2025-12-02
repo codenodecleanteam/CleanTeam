@@ -35,6 +35,7 @@ interface AuthContextValue {
   profile: ProfileRecord | null;
   company: CompanyRecord | null;
   initializing: boolean;
+  pendingSetupUser: User | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (payload: {
     name: string;
@@ -43,6 +44,10 @@ interface AuthContextValue {
     companyName: string;
   }) => Promise<{ requiresEmailConfirmation: boolean }>;
   signOut: () => Promise<void>;
+  completeOnboarding: (payload: {
+    companyName: string;
+    ownerName?: string;
+  }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -91,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [company, setCompany] = useState<CompanyRecord | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [pendingSetupUser, setPendingSetupUser] = useState<User | null>(null);
 
   const provisionFromMetadata = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -154,8 +160,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const created = await provisionFromMetadata();
         if (created) {
+          setPendingSetupUser(null);
           await fetchProfile(userId);
         } else {
+          const { data: userData } = await supabase.auth.getUser();
+          setPendingSetupUser(userData.user ?? null);
           setProfile(null);
           setCompany(null);
         }
@@ -167,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    setPendingSetupUser(null);
     setProfile(mappedProfile);
 
     if (mappedProfile?.companyId) {
@@ -277,10 +287,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [fetchProfile]
   );
 
+  const completeOnboarding = useCallback(
+    async ({ companyName, ownerName }: { companyName: string; ownerName?: string }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) {
+        throw new Error("Usuário não autenticado.");
+      }
+      const displayName = ownerName?.trim() || defaultOwnerName(user.email);
+      const preferredLanguage =
+        (user.user_metadata?.language as LanguageCode | undefined) ||
+        getPreferredLanguage();
+
+      const { data: companyRow, error: companyError } = await supabase
+        .from("companies")
+        .insert({ name: companyName })
+        .select("id")
+        .single();
+      if (companyError) throw companyError;
+
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: user.id,
+        company_id: companyRow.id,
+        role: "owner",
+        name: displayName,
+        email: user.email,
+        language: preferredLanguage,
+      });
+      if (profileError) throw profileError;
+
+      setPendingSetupUser(null);
+      await fetchProfile(user.id);
+    },
+    [fetchProfile]
+  );
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);
     setCompany(null);
+    setPendingSetupUser(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(
@@ -289,11 +335,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       company,
       initializing,
+      pendingSetupUser,
       signIn,
       signUp,
       signOut,
+      completeOnboarding,
     }),
-    [session, profile, company, initializing, signIn, signUp, signOut]
+    [session, profile, company, initializing, pendingSetupUser, signIn, signUp, signOut, completeOnboarding]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

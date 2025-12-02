@@ -9,6 +9,7 @@ import { LoginForm, SignupForm } from '@/components/AuthForms';
 import SuperAdminDashboard from '@/components/SuperAdminDashboard';
 import CompanyAdminDashboard from '@/components/CompanyAdminDashboard';
 import CleanerMobileView from '@/components/CleanerMobileView';
+import { SetupCompany } from '@/components/SetupCompany';
 import NotFound from '@/pages/not-found';
 import '@/lib/i18n';
 import { useAuth } from "@/providers/AuthProvider";
@@ -38,7 +39,7 @@ const FullscreenLoader = () => (
 
 function App() {
   const [, setLocation] = useLocation();
-  const { session, profile, company, initializing, signIn, signUp, signOut } = useAuth();
+  const { session, profile, company, initializing, pendingSetupUser, signIn, signUp, signOut } = useAuth();
 
   const dashboardRoute = profile ? roleRouteMap[profile.role] ?? "/dashboard" : "/dashboard";
 
@@ -68,6 +69,10 @@ function App() {
 
   if (initializing) {
     return <FullscreenLoader />;
+  }
+
+  if (session && pendingSetupUser) {
+    return <SetupCompany />;
   }
 
   return (
