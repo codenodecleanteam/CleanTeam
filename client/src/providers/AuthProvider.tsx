@@ -6,7 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
 type LanguageCode = "en" | "pt" | "es";
@@ -41,7 +41,7 @@ interface AuthContextValue {
     email: string;
     password: string;
     companyName: string;
-  }) => Promise<void>;
+  }) => Promise<{ requiresEmailConfirmation: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -56,6 +56,11 @@ function getPreferredLanguage(): LanguageCode {
   }
   return LANGUAGE_FALLBACK;
 }
+
+const defaultOwnerName = (email?: string | null) => {
+  if (!email) return "Owner";
+  return email.split("@")[0] || "Owner";
+};
 
 function mapProfile(row: any): ProfileRecord | null {
   if (!row) return null;
@@ -87,6 +92,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [company, setCompany] = useState<CompanyRecord | null>(null);
   const [initializing, setInitializing] = useState(true);
 
+  const provisionFromMetadata = useCallback(async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    if (!user) return false;
+    const companyName: string | undefined =
+      user.user_metadata?.companyName || user.user_metadata?.company_name;
+    if (!companyName) return false;
+
+    const preferredLanguage =
+      (user.user_metadata?.language as LanguageCode | undefined) ||
+      getPreferredLanguage();
+    const displayName =
+      (user.user_metadata?.name as string | undefined) ||
+      defaultOwnerName(user.email);
+
+    const { data: companyRow, error: companyError } = await supabase
+      .from("companies")
+      .insert({ name: companyName })
+      .select("id")
+      .single();
+    if (companyError) throw companyError;
+
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: user.id,
+      company_id: companyRow.id,
+      role: "owner",
+      name: displayName,
+      email: user.email,
+      language: preferredLanguage,
+    });
+    if (profileError) throw profileError;
+
+    return true;
+  }, []);
+
   const fetchProfile = useCallback(async (userId: string | null | undefined) => {
     if (!userId) {
       setProfile(null);
@@ -110,6 +150,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const mappedProfile = mapProfile(profileRow);
+    if (!mappedProfile) {
+      try {
+        const created = await provisionFromMetadata();
+        if (created) {
+          await fetchProfile(userId);
+        } else {
+          setProfile(null);
+          setCompany(null);
+        }
+      } catch (err) {
+        console.error("Erro ao provisionar perfil", err);
+        setProfile(null);
+        setCompany(null);
+      }
+      return;
+    }
+
     setProfile(mappedProfile);
 
     if (mappedProfile?.companyId) {
@@ -127,7 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setCompany(null);
     }
-  }, []);
+  }, [provisionFromMetadata]);
 
   useEffect(() => {
     const run = async () => {
@@ -171,6 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: string;
       companyName: string;
     }) => {
+      const preferredLanguage = getPreferredLanguage();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -178,7 +236,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
             name,
-            language: getPreferredLanguage(),
+            language: preferredLanguage,
+            companyName,
           },
         },
       });
@@ -190,15 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!data.session) {
-        const { data: loginData, error: loginError } =
-          await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-        if (loginError) throw loginError;
-        if (!loginData.session) {
-          throw new Error("Não foi possível autenticar o usuário recém criado.");
-        }
+        return { requiresEmailConfirmation: true };
       }
 
       const { data: companyRow, error: companyError } = await supabase
@@ -210,7 +261,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       if (companyError) throw companyError;
 
-      const preferredLanguage = getPreferredLanguage();
       const { error: profileError } = await supabase.from("profiles").insert({
         id: userId,
         company_id: companyRow.id,
@@ -222,6 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profileError) throw profileError;
 
       await fetchProfile(userId);
+      return { requiresEmailConfirmation: false };
     },
     [fetchProfile]
   );

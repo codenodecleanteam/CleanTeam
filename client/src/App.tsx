@@ -54,8 +54,11 @@ function App() {
   };
 
   const handleSignup = async (data: { name: string; email: string; password: string; companyName: string }) => {
-    await signUp(data);
-    setLocation("/");
+    const result = await signUp(data);
+    if (!result.requiresEmailConfirmation) {
+      setLocation("/");
+    }
+    return result;
   };
 
   const handleLogout = async () => {

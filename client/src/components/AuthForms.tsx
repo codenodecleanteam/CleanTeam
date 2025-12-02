@@ -112,7 +112,7 @@ export function LoginForm({ onSubmit, onSwitchToSignup }: LoginFormProps) {
 }
 
 interface SignupFormProps {
-  onSubmit?: (data: { name: string; email: string; password: string; companyName: string }) => Promise<void> | void;
+  onSubmit?: (data: { name: string; email: string; password: string; companyName: string }) => Promise<{ requiresEmailConfirmation: boolean } | void>;
   onSwitchToLogin?: () => void;
 }
 
@@ -130,7 +130,25 @@ export function SignupForm({ onSubmit, onSwitchToLogin }: SignupFormProps) {
     if (!onSubmit) return;
     try {
       setIsSubmitting(true);
-      await onSubmit({ name, email, password, companyName });
+      const result = await onSubmit({ name, email, password, companyName });
+      if (result && typeof result === 'object' && 'requiresEmailConfirmation' in result) {
+        if (result.requiresEmailConfirmation) {
+          toast({
+            title: t('auth.signup'),
+            description: t('auth.checkEmail'),
+          });
+        } else {
+          toast({
+            title: t('auth.signup'),
+            description: t('auth.signupSuccess'),
+          });
+        }
+      } else {
+        toast({
+          title: t('auth.signup'),
+          description: t('auth.signupSuccess'),
+        });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       toast({

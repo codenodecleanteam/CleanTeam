@@ -49,7 +49,9 @@ const resources = {
         forgotPassword: 'Forgot password?',
         noAccount: "Don't have an account?",
         hasAccount: 'Already have an account?',
-        trialNote: 'Start your 30-day free trial. No credit card required.'
+        trialNote: 'Start your 30-day free trial. No credit card required.',
+        checkEmail: 'Check your inbox to confirm your email before logging in.',
+        signupSuccess: 'Account created! Redirecting you to the dashboard...'
       },
       dashboard: {
         welcome: 'Welcome back',
@@ -200,7 +202,9 @@ const resources = {
         forgotPassword: 'Esqueceu a senha?',
         noAccount: 'Nao tem uma conta?',
         hasAccount: 'Ja tem uma conta?',
-        trialNote: 'Comece seu teste gratis de 30 dias. Sem cartao de credito.'
+        trialNote: 'Comece seu teste gratis de 30 dias. Sem cartao de credito.',
+        checkEmail: 'Verifique seu e-mail para confirmar antes de entrar.',
+        signupSuccess: 'Conta criada! Redirecionando para o painel...'
       },
       dashboard: {
         welcome: 'Bem-vindo de volta',
@@ -351,7 +355,9 @@ const resources = {
         forgotPassword: 'Olvidaste tu contrasena?',
         noAccount: 'No tienes cuenta?',
         hasAccount: 'Ya tienes cuenta?',
-        trialNote: 'Comienza tu prueba gratis de 30 dias. Sin tarjeta de credito.'
+        trialNote: 'Comienza tu prueba gratis de 30 dias. Sin tarjeta de credito.',
+        checkEmail: 'Revisa tu correo para confirmar antes de iniciar sesion.',
+        signupSuccess: 'Cuenta creada. Redirigiendo al panel...'
       },
       dashboard: {
         welcome: 'Bienvenido de vuelta',
