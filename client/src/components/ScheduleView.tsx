@@ -91,6 +91,7 @@ export default function ScheduleView() {
     data: schedules = [],
     isLoading: isLoadingSchedules,
     isError: schedulesError,
+    error: schedulesErrorData,
   } = useQuery({
     queryKey: ['schedules', companyId],
     enabled: !!companyId,
@@ -312,7 +313,7 @@ export default function ScheduleView() {
           )}
           {schedulesError && (
             <p className="text-sm text-destructive">
-              {t('common.genericError')}
+              {schedulesErrorData?.message || t('common.genericError')}
             </p>
           )}
           <div className="overflow-x-auto">

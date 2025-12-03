@@ -39,7 +39,7 @@ const FullscreenLoader = () => (
 );
 
 function App() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { session, profile, company, initializing, pendingSetupUser, signIn, signUp, signOut } = useAuth();
 
   const dashboardRoute = profile ? roleRouteMap[profile.role] ?? "/dashboard" : "/dashboard";
@@ -75,6 +75,14 @@ function App() {
   if (session && pendingSetupUser) {
     return <SetupCompany />;
   }
+
+  useEffect(() => {
+    if (initializing || !session || !profile || company?.isBlocked) return;
+    const publicRoutes = ["/", "/login", "/signup"];
+    if (publicRoutes.includes(location)) {
+      setLocation(dashboardRoute);
+    }
+  }, [initializing, session, profile, company?.isBlocked, dashboardRoute, location, setLocation]);
 
   if (session && company?.isBlocked) {
     return (
