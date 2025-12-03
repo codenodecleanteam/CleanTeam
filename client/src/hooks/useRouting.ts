@@ -5,9 +5,7 @@ export function useRouting() {
 
   return {
     location,
-    navigate: (to: string) => {
-      setLocation(to);
-    },
+    navigate: (to: string) => setLocation(to),
   };
 }
 
