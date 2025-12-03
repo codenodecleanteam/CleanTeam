@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
+import { getAppBaseUrl } from "@/lib/appConfig";
 
 type LanguageCode = "en" | "pt" | "es";
 type UserRole = "superadmin" | "owner" | "admin" | "cleaner";
@@ -66,6 +67,8 @@ const defaultOwnerName = (email?: string | null) => {
   if (!email) return "Owner";
   return email.split("@")[0] || "Owner";
 };
+
+const APP_BASE_URL = getAppBaseUrl();
 
 function mapProfile(row: any): ProfileRecord | null {
   if (!row) return null;
@@ -265,7 +268,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo:
+            APP_BASE_URL && APP_BASE_URL.length > 0
+              ? `${APP_BASE_URL}/`
+              : typeof window !== "undefined"
+                ? `${window.location.origin}/`
+                : undefined,
           data: {
             name,
             language: preferredLanguage,

@@ -14,6 +14,7 @@ import LanguageSelector from "./LanguageSelector";
 import ThemeToggle from "./ThemeToggle";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getReadableErrorMessage } from "@/lib/errorUtils";
 
 interface LoginFormProps {
   onSubmit?: (email: string, password: string) => Promise<void> | void;
@@ -34,7 +35,7 @@ export function LoginForm({ onSubmit, onSwitchToSignup }: LoginFormProps) {
       setIsSubmitting(true);
       await onSubmit(email, password);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getReadableErrorMessage(error);
       toast({
         title: t('auth.login'),
         description: message,
@@ -150,7 +151,7 @@ export function SignupForm({ onSubmit, onSwitchToLogin }: SignupFormProps) {
         });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getReadableErrorMessage(error);
       toast({
         title: t('auth.signup'),
         description: message,

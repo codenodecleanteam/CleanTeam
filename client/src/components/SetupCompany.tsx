@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/providers/AuthProvider";
+import { getReadableErrorMessage } from "@/lib/errorUtils";
 
 export function SetupCompany() {
   const { t } = useTranslation();
@@ -37,7 +38,7 @@ export function SetupCompany() {
         description: t("auth.signupSuccess"),
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getReadableErrorMessage(error);
       toast({
         title: t("common.genericError"),
         description: message,
