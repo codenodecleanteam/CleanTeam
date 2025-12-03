@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,6 +28,14 @@ const FullscreenLoader = () => (
     <Loader2 className="h-10 w-10 animate-spin text-primary" />
   </div>
 );
+
+function RedirectTo({ to }: { to: string }) {
+  const { navigate } = useRouting();
+  useEffect(() => {
+    navigate(to);
+  }, [navigate, to]);
+  return null;
+}
 
 function App() {
   const { location, navigate } = useRouting();
@@ -72,7 +80,7 @@ function App() {
     }
   };
 
-  useMemo(() => {
+  useEffect(() => {
     if (initializing || !session || !profile || company?.isBlocked) return;
     const publicRoutes = ["/", "/login", "/signup"];
     if (publicRoutes.includes(location)) {
@@ -105,21 +113,21 @@ function App() {
           {!session ? (
             <LandingPage onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />
           ) : (
-            navigate(dashboardRoute)
+            <RedirectTo to={dashboardRoute} />
           )}
         </Route>
         <Route path="/login">
           {!session ? (
             <LoginForm onSubmit={handleLogin} onSwitchToSignup={() => navigate("/signup")} />
           ) : (
-            navigate(dashboardRoute)
+            <RedirectTo to={dashboardRoute} />
           )}
         </Route>
         <Route path="/signup">
           {!session ? (
             <SignupForm onSubmit={handleSignup} onSwitchToLogin={() => navigate("/login")} />
           ) : (
-            navigate(dashboardRoute)
+            <RedirectTo to={dashboardRoute} />
           )}
         </Route>
         <Route path="/admin">
