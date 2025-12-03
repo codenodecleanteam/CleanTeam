@@ -113,7 +113,8 @@ const resources = {
         scheduled: 'Scheduled',
         inProgress: 'In Progress',
         completed: 'Completed',
-        cancelled: 'Cancelled'
+        cancelled: 'Cancelled',
+        conflict: 'Schedule conflict for the selected team.'
       },
       cleaner: {
         myAgenda: 'My Agenda',
@@ -145,6 +146,7 @@ const resources = {
         loading: 'Loading...',
         noResults: 'No results found',
         actions: 'Actions',
+        select: 'Select',
         savedSuccessfully: 'Saved successfully',
         genericError: 'Something went wrong.',
         companyAccessRequired: 'Available only for company admins.',
@@ -277,7 +279,8 @@ const resources = {
         scheduled: 'Agendado',
         inProgress: 'Em Andamento',
         completed: 'Concluido',
-        cancelled: 'Cancelado'
+        cancelled: 'Cancelado',
+        conflict: 'Conflito de agenda para a equipe selecionada.'
       },
       cleaner: {
         myAgenda: 'Minha Agenda',
@@ -309,6 +312,7 @@ const resources = {
         loading: 'Carregando...',
         noResults: 'Nenhum resultado encontrado',
         actions: 'Ações',
+        select: 'Selecione',
         savedSuccessfully: 'Salvo com sucesso',
         genericError: 'Ocorreu um erro.',
         companyAccessRequired: 'Disponível apenas para administradores da empresa.',
@@ -441,7 +445,8 @@ const resources = {
         scheduled: 'Programado',
         inProgress: 'En Progreso',
         completed: 'Completado',
-        cancelled: 'Cancelado'
+        cancelled: 'Cancelado',
+        conflict: 'Conflicto de agenda para el equipo seleccionado.'
       },
       cleaner: {
         myAgenda: 'Mi Agenda',
@@ -473,6 +478,7 @@ const resources = {
         loading: 'Cargando...',
         noResults: 'No se encontraron resultados',
         actions: 'Acciones',
+        select: 'Seleccionar',
         savedSuccessfully: 'Guardado correctamente',
         genericError: 'Ocurrió un error.',
         companyAccessRequired: 'Disponible solo para administradores de la empresa.',
