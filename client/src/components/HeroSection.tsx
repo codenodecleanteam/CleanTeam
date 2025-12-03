@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Play } from 'lucide-react';
-import heroImage from '@assets/generated_images/cleaning_team_nyc_hero.png';
+import heroImage from '@assets/generated_images/ImagemHeroCleanTeam.png';
 
 interface HeroSectionProps {
   onStartTrial?: () => void;
