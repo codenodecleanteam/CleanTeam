@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Play } from 'lucide-react';
 import heroImage from '@assets/generated_images/ImagemHeroCleanTeam.png';
+import { Link } from 'wouter';
 
 interface HeroSectionProps {
   onStartTrial?: () => void;
@@ -30,14 +31,16 @@ export default function HeroSection({ onStartTrial }: HeroSectionProps) {
             {t('hero.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button 
-              size="lg" 
-              onClick={onStartTrial}
+            <Button
+              asChild
+              size="lg"
               className="text-base"
               data-testid="button-hero-cta"
             >
-              {t('hero.cta')}
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <Link href="/signup" onClick={onStartTrial}>
+                {t('hero.cta')}
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
             </Button>
             <Button 
               size="lg" 

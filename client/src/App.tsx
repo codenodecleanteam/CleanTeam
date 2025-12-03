@@ -1,7 +1,5 @@
 import { useEffect, useMemo } from "react";
 import { Switch, Route } from "wouter";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import LandingPage from "@/components/LandingPage";
@@ -94,6 +92,11 @@ function App() {
     return <FullscreenLoader />;
   }
 
+  const isMissingProfile = session && !pendingSetupUser && !profile;
+  if (isMissingProfile) {
+    return <FullscreenLoader />;
+  }
+
   if (session && pendingSetupUser) {
     return <SetupCompany />;
   }
@@ -108,60 +111,58 @@ function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Switch>
-          <Route path="/">
-            {!session ? (
-              <LandingPage onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />
-            ) : (
-              <RedirectTo to={dashboardRoute} />
-            )}
-          </Route>
-          <Route path="/login">
-            {!session ? (
-              <LoginForm onSubmit={handleLogin} onSwitchToSignup={() => navigate("/signup")} />
-            ) : (
-              <RedirectTo to={dashboardRoute} />
-            )}
-          </Route>
-          <Route path="/signup">
-            {!session ? (
-              <SignupForm onSubmit={handleSignup} onSwitchToLogin={() => navigate("/login")} />
-            ) : (
-              <RedirectTo to={dashboardRoute} />
-            )}
-          </Route>
-          <Route path="/admin">
-            {session && profile?.role === "superadmin" ? (
-              <SuperAdminDashboard onLogout={handleLogout} />
-            ) : (
-              <RedirectTo to={session ? dashboardRoute : "/"} />
-            )}
-          </Route>
-          <Route path="/dashboard">
-            {session && ["owner", "admin"].includes(profile?.role ?? "") ? (
-              <CompanyAdminDashboard
-                companyName={company?.name ?? "Sua Empresa"}
-                trialDaysLeft={trialDaysLeft}
-                onLogout={handleLogout}
-              />
-            ) : (
-              <RedirectTo to={session ? dashboardRoute : "/"} />
-            )}
-          </Route>
-          <Route path="/cleaner">
-            {session && profile?.role === "cleaner" ? (
-              <CleanerMobileView cleanerName={profile.name} onLogout={handleLogout} />
-            ) : (
-              <RedirectTo to={session ? dashboardRoute : "/"} />
-            )}
-          </Route>
-          <Route component={NotFound} />
-        </Switch>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Switch>
+        <Route path="/">
+          {!session ? (
+            <LandingPage onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />
+          ) : (
+            <RedirectTo to={dashboardRoute} />
+          )}
+        </Route>
+        <Route path="/login">
+          {!session ? (
+            <LoginForm onSubmit={handleLogin} onSwitchToSignup={() => navigate("/signup")} />
+          ) : (
+            <RedirectTo to={dashboardRoute} />
+          )}
+        </Route>
+        <Route path="/signup">
+          {!session ? (
+            <SignupForm onSubmit={handleSignup} onSwitchToLogin={() => navigate("/login")} />
+          ) : (
+            <RedirectTo to={dashboardRoute} />
+          )}
+        </Route>
+        <Route path="/admin">
+          {session && profile?.role === "superadmin" ? (
+            <SuperAdminDashboard onLogout={handleLogout} />
+          ) : (
+            <RedirectTo to={session ? dashboardRoute : "/"} />
+          )}
+        </Route>
+        <Route path="/dashboard">
+          {session && ["owner", "admin"].includes(profile?.role ?? "") ? (
+            <CompanyAdminDashboard
+              companyName={company?.name ?? "Sua Empresa"}
+              trialDaysLeft={trialDaysLeft}
+              onLogout={handleLogout}
+            />
+          ) : (
+            <RedirectTo to={session ? dashboardRoute : "/"} />
+          )}
+        </Route>
+        <Route path="/cleaner">
+          {session && profile?.role === "cleaner" ? (
+            <CleanerMobileView cleanerName={profile.name} onLogout={handleLogout} />
+          ) : (
+            <RedirectTo to={session ? dashboardRoute : "/"} />
+          )}
+        </Route>
+        <Route component={NotFound} />
+      </Switch>
+    </TooltipProvider>
   );
 }
 

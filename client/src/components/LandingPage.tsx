@@ -4,6 +4,7 @@ import HeroSection from './HeroSection';
 import FeaturesSection from './FeaturesSection';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, CheckCircle } from 'lucide-react';
+import { Link } from 'wouter';
 
 interface LandingPageProps {
   onLogin?: () => void;
@@ -45,9 +46,16 @@ export default function LandingPage({ onLogin, onSignup }: LandingPageProps) {
             ))}
           </div>
 
-          <Button size="lg" onClick={onSignup} className="text-base" data-testid="button-footer-cta">
-            {t('hero.cta')}
-            <ArrowRight className="ml-2 h-5 w-5" />
+          <Button
+            asChild
+            size="lg"
+            className="text-base"
+            data-testid="button-footer-cta"
+          >
+            <Link href="/signup" onClick={onSignup}>
+              {t('hero.cta')}
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
           </Button>
         </div>
       </section>

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import LanguageSelector from './LanguageSelector';
 import ThemeToggle from './ThemeToggle';
 import { Sparkles } from 'lucide-react';
+import { Link } from 'wouter';
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -33,20 +34,24 @@ export default function Header({ isLoggedIn, onLogin, onSignup, onLogout }: Head
               >
                 {t('nav.features')}
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={onLogin}
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
                 data-testid="button-login"
               >
-                {t('nav.login')}
+                <Link href="/login" onClick={onLogin}>
+                  {t('nav.login')}
+                </Link>
               </Button>
-              <Button 
-                size="sm" 
-                onClick={onSignup}
+              <Button
+                asChild
+                size="sm"
                 data-testid="button-signup"
               >
-                {t('nav.signup')}
+                <Link href="/signup" onClick={onSignup}>
+                  {t('nav.signup')}
+                </Link>
               </Button>
             </>
           )}
