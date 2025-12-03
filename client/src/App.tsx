@@ -63,6 +63,14 @@ function App() {
     return result;
   };
 
+  useEffect(() => {
+    if (initializing || !session || !profile || company?.isBlocked) return;
+    const publicRoutes = ["/", "/login", "/signup"];
+    if (publicRoutes.includes(location)) {
+      setLocation(dashboardRoute);
+    }
+  }, [initializing, session, profile, company?.isBlocked, dashboardRoute, location, setLocation]);
+
   const handleLogout = async () => {
     await signOut();
     setLocation("/");
@@ -75,14 +83,6 @@ function App() {
   if (session && pendingSetupUser) {
     return <SetupCompany />;
   }
-
-  useEffect(() => {
-    if (initializing || !session || !profile || company?.isBlocked) return;
-    const publicRoutes = ["/", "/login", "/signup"];
-    if (publicRoutes.includes(location)) {
-      setLocation(dashboardRoute);
-    }
-  }, [initializing, session, profile, company?.isBlocked, dashboardRoute, location, setLocation]);
 
   if (session && company?.isBlocked) {
     return (
