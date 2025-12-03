@@ -98,6 +98,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initializing, setInitializing] = useState(true);
   const [pendingSetupUser, setPendingSetupUser] = useState<User | null>(null);
 
+  const createCompanyWithOwner = useCallback(
+    async ({
+      companyName,
+      ownerName,
+      ownerEmail,
+      language,
+    }: {
+      companyName: string;
+      ownerName?: string | null;
+      ownerEmail?: string | null;
+      language?: LanguageCode;
+    }) => {
+      if (!companyName.trim()) {
+        throw new Error("Nome da empresa obrigatório.");
+      }
+
+      const { data, error } = await supabase.rpc("create_company_with_owner", {
+        p_company_name: companyName.trim(),
+        p_owner_name: ownerName ?? null,
+        p_owner_email: ownerEmail ?? null,
+        p_language: language ?? null,
+      });
+
+      if (error) throw error;
+      if (!data) {
+        throw new Error("Não foi possível criar a empresa.");
+      }
+
+      return data as string;
+    },
+    []
+  );
+
   const provisionFromMetadata = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
@@ -113,25 +146,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (user.user_metadata?.name as string | undefined) ||
       defaultOwnerName(user.email);
 
-    const { data: companyRow, error: companyError } = await supabase
-      .from("companies")
-      .insert({ name: companyName })
-      .select("id")
-      .single();
-    if (companyError) throw companyError;
-
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: user.id,
-      company_id: companyRow.id,
-      role: "owner",
-      name: displayName,
-      email: user.email,
+    await createCompanyWithOwner({
+      companyName,
+      ownerName: displayName,
+      ownerEmail: user.email,
       language: preferredLanguage,
     });
-    if (profileError) throw profileError;
-
     return true;
-  }, []);
+  }, [createCompanyWithOwner]);
 
   const fetchProfile = useCallback(async (userId: string | null | undefined) => {
     if (!userId) {
@@ -262,29 +284,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { requiresEmailConfirmation: true };
       }
 
-      const { data: companyRow, error: companyError } = await supabase
-        .from("companies")
-        .insert({
-          name: companyName,
-        })
-        .select("id")
-        .single();
-      if (companyError) throw companyError;
-
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: userId,
-        company_id: companyRow.id,
-        role: "owner",
-        name,
-        email,
+      await createCompanyWithOwner({
+        companyName,
+        ownerName: name,
+        ownerEmail: email,
         language: preferredLanguage,
       });
-      if (profileError) throw profileError;
 
       await fetchProfile(userId);
       return { requiresEmailConfirmation: false };
     },
-    [fetchProfile]
+    [fetchProfile, createCompanyWithOwner]
   );
 
   const completeOnboarding = useCallback(
@@ -299,27 +309,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (user.user_metadata?.language as LanguageCode | undefined) ||
         getPreferredLanguage();
 
-      const { data: companyRow, error: companyError } = await supabase
-        .from("companies")
-        .insert({ name: companyName })
-        .select("id")
-        .single();
-      if (companyError) throw companyError;
-
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: user.id,
-        company_id: companyRow.id,
-        role: "owner",
-        name: displayName,
-        email: user.email,
+      await createCompanyWithOwner({
+        companyName,
+        ownerName: displayName,
+        ownerEmail: user.email,
         language: preferredLanguage,
       });
-      if (profileError) throw profileError;
 
       setPendingSetupUser(null);
       await fetchProfile(user.id);
     },
-    [fetchProfile]
+    [fetchProfile, createCompanyWithOwner]
   );
 
   const signOut = useCallback(async () => {
