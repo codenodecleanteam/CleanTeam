@@ -68,7 +68,12 @@ const resources = {
         totalCompanies: 'Total Companies',
         activeSubscriptions: 'Active Subscriptions',
         inTrial: 'In Trial',
-        totalJobs: 'Total Jobs'
+        totalJobs: 'Total Jobs',
+        suspend: 'Suspend',
+        unsuspend: 'Unblock',
+        blockedLabel: 'Blocked',
+        suspendSuccess: 'Company suspended successfully.',
+        unsuspendSuccess: 'Company reactivated successfully.'
       },
       cleaners: {
         title: 'Cleaners',
@@ -221,7 +226,12 @@ const resources = {
         totalCompanies: 'Total de Empresas',
         activeSubscriptions: 'Assinaturas Ativas',
         inTrial: 'Em Teste',
-        totalJobs: 'Total de Servicos'
+        totalJobs: 'Total de Servicos',
+        suspend: 'Suspender',
+        unsuspend: 'Reativar',
+        blockedLabel: 'Suspensa',
+        suspendSuccess: 'Empresa suspensa com sucesso.',
+        unsuspendSuccess: 'Empresa reativada com sucesso.'
       },
       cleaners: {
         title: 'Diaristas',
@@ -374,7 +384,12 @@ const resources = {
         totalCompanies: 'Total de Empresas',
         activeSubscriptions: 'Suscripciones Activas',
         inTrial: 'En Prueba',
-        totalJobs: 'Total de Trabajos'
+        totalJobs: 'Total de Trabajos',
+        suspend: 'Suspender',
+        unsuspend: 'Reactivar',
+        blockedLabel: 'Suspendida',
+        suspendSuccess: 'Empresa suspendida correctamente.',
+        unsuspendSuccess: 'Empresa reactivada correctamente.'
       },
       cleaners: {
         title: 'Limpiadores',

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/providers/AuthProvider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface CompanyRow {
   id: string;
@@ -39,6 +40,8 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
   const { t } = useTranslation();
   const { profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const isSuperAdmin = profile?.role === 'superadmin';
 
@@ -143,6 +146,49 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
+
+  const toggleCompanyStatusMutation = useMutation<
+    { block: boolean },
+    Error,
+    { companyId: string; block: boolean }
+  >({
+    mutationFn: async ({ companyId, block }) => {
+      const { error } = await supabase
+        .from('companies')
+        .update({ is_blocked: block })
+        .eq('id', companyId);
+      if (error) throw error;
+      return { block };
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin-companies'] });
+      toast({
+        title: t('superadmin.companies'),
+        description: variables?.block
+          ? t('superadmin.suspendSuccess')
+          : t('superadmin.unsuspendSuccess'),
+      });
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : t('common.genericError');
+      toast({
+        title: t('superadmin.companies'),
+        description: message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleToggleCompanyStatus = (company: CompanyRow) => {
+    toggleCompanyStatusMutation.mutate({
+      companyId: company.id,
+      block: !company.is_blocked,
+    });
+  };
+
+  const isUpdatingCompany = (companyId: string) =>
+    toggleCompanyStatusMutation.isPending &&
+    toggleCompanyStatusMutation.variables?.companyId === companyId;
 
   const metrics = useMemo(() => {
     return {
@@ -259,11 +305,11 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
                   {filteredCompanies.map((company) => (
                     <TableRow key={company.id} data-testid={`row-company-${company.id}`}>
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
+                         <div className="flex items-center gap-2">
                           {company.name}
                           {company.is_blocked && (
                             <Badge variant="destructive" className="uppercase text-[10px]">
-                              Blocked
+                              {t('superadmin.blockedLabel', { defaultValue: 'Blocked' })}
                             </Badge>
                           )}
                         </div>
@@ -278,9 +324,25 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
                       <TableCell className="text-right">{company.clients}</TableCell>
                       <TableCell className="text-right">{company.jobs}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" data-testid={`button-view-${company.id}`}>
-                          View
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm" data-testid={`button-view-${company.id}`}>
+                            View
+                          </Button>
+                          <Button
+                            variant={company.is_blocked ? 'secondary' : 'destructive'}
+                            size="sm"
+                            onClick={() => handleToggleCompanyStatus(company)}
+                            disabled={isUpdatingCompany(company.id)}
+                            data-testid={`button-toggle-${company.id}`}
+                          >
+                            {isUpdatingCompany(company.id) ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            {company.is_blocked
+                              ? t('superadmin.unsuspend', { defaultValue: 'Reativar' })
+                              : t('superadmin.suspend', { defaultValue: 'Suspender' })}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
