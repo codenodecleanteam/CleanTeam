@@ -72,8 +72,16 @@ function App() {
   }, [initializing, session, profile, company?.isBlocked, dashboardRoute, location, setLocation]);
 
   const handleLogout = async () => {
-    await signOut();
-    setLocation("/");
+    try {
+      await signOut();
+    } finally {
+      queryClient.clear();
+      if (typeof window !== "undefined") {
+        window.location.assign("/");
+      } else {
+        setLocation("/");
+      }
+    }
   };
 
   if (initializing) {
