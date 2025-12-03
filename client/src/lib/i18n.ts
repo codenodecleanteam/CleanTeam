@@ -158,6 +158,12 @@ const resources = {
         expiredMessage: 'Please subscribe to continue using CleanTeams.',
         subscribe: 'Subscribe Now',
         trialDays: 'days left in trial'
+      },
+      companyBlocked: {
+        title: 'Account Suspended',
+        subtitle: 'Your company access has been temporarily disabled.',
+        description: 'Please contact our support team to reactivate your subscription.',
+        cta: 'Return to login'
       }
     }
   },
@@ -316,6 +322,12 @@ const resources = {
         expiredMessage: 'Assine para continuar usando o CleanTeams.',
         subscribe: 'Assinar Agora',
         trialDays: 'dias restantes no teste'
+      },
+      companyBlocked: {
+        title: 'Conta suspensa',
+        subtitle: 'O acesso da sua empresa foi temporariamente desativado.',
+        description: 'Entre em contato com o suporte para reativar sua assinatura.',
+        cta: 'Voltar para o login'
       }
     }
   },
@@ -474,6 +486,12 @@ const resources = {
         expiredMessage: 'Suscribete para continuar usando CleanTeams.',
         subscribe: 'Suscribirse Ahora',
         trialDays: 'dias restantes de prueba'
+      },
+      companyBlocked: {
+        title: 'Cuenta suspendida',
+        subtitle: 'El acceso de tu empresa fue desactivado temporalmente.',
+        description: 'Contacta al soporte para reactivar tu suscripción.',
+        cta: 'Volver al inicio de sesión'
       }
     }
   }

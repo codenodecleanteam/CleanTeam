@@ -10,6 +10,7 @@ import SuperAdminDashboard from '@/components/SuperAdminDashboard';
 import CompanyAdminDashboard from '@/components/CompanyAdminDashboard';
 import CleanerMobileView from '@/components/CleanerMobileView';
 import { SetupCompany } from '@/components/SetupCompany';
+import { BlockedCompanyScreen } from '@/components/BlockedCompanyScreen';
 import NotFound from '@/pages/not-found';
 import '@/lib/i18n';
 import { useAuth } from "@/providers/AuthProvider";
@@ -73,6 +74,17 @@ function App() {
 
   if (session && pendingSetupUser) {
     return <SetupCompany />;
+  }
+
+  if (session && company?.isBlocked) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <BlockedCompanyScreen onLogout={handleLogout} />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
   }
 
   return (
